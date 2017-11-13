@@ -1,0 +1,71 @@
+---
+title: " Working Draft"
+author: "Heather Weaver"
+date: "November 10, 2017"
+output:
+  word_document: default
+  md_document:
+    variant: markdown_github
+  pdf_document: default
+  html_document: default
+link-citations: yes
+header-includes: \setlength\parindent{24pt}
+bibliography: ~/ref.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(readxl)
+require(ggplot2)
+require(plyr)
+require(pander)
+require(knitr)
+require(bibtex)
+MRSA <- read_excel("~/MRSA.xlsx")
+all_path <- read_excel("~/All_Path.xlsx")
+bib <- read.bib('~/ref.bib')
+```
+
+
+
+The ABATE Trial (Addressing Bioburden while Admitted To Eliminate Infection) is a cluster-randomized pre-post designed trial$^1$ including fifty-three hospitals and approximately 400,000 patients. The aim of the ABATE trial was to evaluate if the incidence of hospital admitted infections in non-ICU patients can be mitigated by daily chlorhexidine bathing and the use of nasal decolonization. Nasal decolonization was used for subjects that were known to be carriers of Staphylococcus aureus (MRSA). It employed a twelve-month baseline period and a twenty-one -month intervention period. The unit of randomization was the hospital, with all participating units within a hospital assigned to the same arm. Hospitals were matched on several factors and one hospital from each pair was assigned to treatment while the other followed care as usual. A shared frailties statistical model was used to evaluate the time to infection of MRSA or VRE bloodstream infection. 
+
+Between the baseline and intervention periods each hospital was involved in the trial for thirty-three months. During this period, some people were admitted to the hospital more than once. If we were to use all the visits from a patient, we would have correlation among the visits by the same patient. There are no current statistical methods or software available for taking this correlation into account and adjusting the model accordingly. Therefore, this unaccounted-for correlation would affect the statistical inference of a trial, which would call into question the validity of the results. For this reason, all the visits from the same individual should not be included. Since only one visit per person can be included in the statistical model, we are left with the question of which visit to use for a patient.
+
+To answer this question, we looked at other papers with instances of multiple visits to see how they selected a visit. In studies with multiple visits among the same person, we could find mention of how these multiple visits were handled. One such study[@Dumont2009] collected data from September 1, 2007, to October 30, 2011 on deliveries in a cluster randomized trial. There was no mention of a woman giving birth twice during the study. However, the study was conducted in west Africa, were it would be common for a woman to give birth more than once in a four-year period. In another study[@Ajayi2017] of adolescents who were put on mechanical ventilation, subjects were included twice in the study if they went more than twenty-hours without needing to be put back on a ventilator. The additional ventilations were counted as new incidence. Since these papers did not give any insight into visit selection, we instead consider the possible options for selecting a visit. These options are using only the first or last visit, excluding all the observations for a patient with multiple visits, or randomly selecting one visit.
+
+Suppose we were to select only the first or the last visit for an individual. Patients who are frequently admitted to the hospital are more likely to develop a hospital admitted infection due to frequent exposure. These patients might also have a compromised immune system, which also increase their risk of infection. If the majority of these patients are only included in the baseline period, then the baseline period would have a higher rate of infection than we might observe otherwise. Alternatively, selecting the last visit for a patient with multiple visits would have the opposite impact on the trial results. Given that the patients with multiple visits are at a higher risk of infection, then the rate of infection in the intervention period would be artificially high. Hence, selecting either the first or the last visit would create bias in the trial by either mitigating or exacerbating the results.
+
+Instead, we could simply choose to exclude all visits if someone has more than one visit. Excluding all of these observations is problematic if a large portion of the patients have more than one visit. In ABATAE, the number of observations is quite large with a total of 529,966 total observations among the baseline period, intervention arm, and care as usual arm. However, thirteen percent of these observations were from subjects that had two or more visits during the study period, which was approximately sixty-eight thousand nine hundred observations. Complete exclusion of all multiple visits is rarely a feasible option since it reduces the number of observations in the trial, thus reducing the power of detecting a difference among the trial arms. 
+
+We are left with the most logical choice of randomly selecting one of the multiple visits to be included in the model, which allows the sample size to be as large as possible without having unexplained correlation in the model. Random selection of a visit is precisely what the investigators in the ABATE trail implemented. Under this method, the initial results of the trial yielded a p-value of 0.16 for the MRSA and VRE clinical cultures and a p-value of 0.35 for the secondary outcome of all pathogen infections. The trial results were not statistically significant because both p-values were above 0.05. 
+
+However, the random selection of the multiple visits may impact the statistical inference of the study as well. The investigators realized this and decided to run the model one hundred time such that the randomly selected visit among the multiple visits may be different than the initial selection. A p-value was computed for each model for MRSA and VRE Clinical Cultures as well as for all pathogen. 
+
+```{r, echo=FALSE}
+hist(MRSA$pvalue_arm_int, col = "alice blue", breaks=20, main="MRSA & VRE Clinical Cultures P-Values for 100 Random Draws", xlab="P-Values")
+abline(v = 0.05,col = "red", lwd = 3)
+text(-.032,18, "p = 0.05", col = "red", adj = c(0,0))
+s <-sum(MRSA$pvalue_arm_int<0.05)
+pander(summary(MRSA$pvalue_arm_int))
+```
+
+While the p-value from the actual study was 0.16, there were a wide range of values it could have been. The histogram above shows that the p-values vary significantly depending on the randomly selected visits. The p-values range from as small as 0.02 to as large as 0.7227 with a median of 0.1741 and a mean of 0.2854. 
+
+```{r, echo=FALSE}
+hist(all_path$pvalue_arm_int, col = "alice blue", breaks=20, main="All Pathogen Clinical Cultures P-Vales for 100 Random Draws", xlab="P-Values")
+abline(v = 0.05,col = "red", lwd = 3)
+text(-.03,23, "p = 0.05", col = "red", adj = c(0,0))
+s <-sum(all_path$pvalue_arm_int<0.05)
+p <-sum(all_path$pvalue_arm_int<0.35)
+pander(summary(all_path$pvalue_arm_int))
+```
+Similarly, we can see that for the secondary outcome of all pathogen cultures there was also a wide range of p-values, from 0.01288 to 0.6674, with a median of 0.1558 and a mean of 0.1849. From the trial the p-value was 0.35, which is in the 91th percentile of the p-values from the one hundred runs of the model. If the p-value in the actual trial had instead been in the ninth percentile, it would have been approximately 0.05. 
+
+Out of the one hundred runs of the model, the p-value was below 0.05 nine times for MRSA & VRE cultures and was below 0.05 seven times for all pathogen cultures. Suppose the p-values in the study had been less than 0.05 and the conclusion was that there was a significant reduction in infections due to the intervention. That conclusion could have led to the implementation of timely and costly medical intervention that may not decrease the incidence of hospital admitted infections. 
+If there is in fact no difference in the incidence of infection among the intervention arm and the care as usual arm, we would expect all the p-value to be large. Similarly, if there was a significant decrease in the incidence of infection among the intervention arm and the care as usual arm, we would expect all the p-value to be small. 
+The amount of variation among the p-values shows we need to consider how multiple visits are handled when stating the results of a trial. There should be an explanation of which method of addressing multiple visits is being used and the reasoning behind such a selection in study. Special attention should be paid to account for and explaining potential factors that could affect the statistical inference of the study. 
+
+# References
+
+
